@@ -16,16 +16,15 @@ export default function Home() {
     total: 0,
   });
   const [page, setPage] = useState<number>(1);
-  const [perView, setPerView] = useState<number>(5);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    getData(page, perView);
+    getData(page, 20);
   }, []);
 
   useEffect(() => {
-    getData(page, perView);
-  }, [page, perView]);
+    getData(page, 20);
+  }, [page]);
 
   const getData = async (page: number, perView: number) => {
     try {
@@ -34,12 +33,12 @@ export default function Home() {
       const res = await fetch(setting.url, setting.options);
 
       const data = await res.json();
+      console.log(data.data);
       setTableData(
         data.data.Page.media.map((item: any) => ({
-          id: item.id,
-          romaji: item.title.romaji,
-          english: item.title.english,
-          native: item.title.native,
+          key: item.id,
+          title: item.title.native,
+          siteUrl: item.siteUrl,
         }))
       );
       setPageInfo({
@@ -56,17 +55,10 @@ export default function Home() {
   };
 
   const handlePagination: PaginationProps["onChange"] = (pageNumber) => {
-    if (pageInfo.total > perView * (pageNumber - 1)) {
+    if (pageInfo.total > 20 * (pageNumber - 1)) {
       setPage(pageNumber);
-      getData(pageNumber, perView);
+      getData(pageNumber, 20);
     }
-  };
-
-  const handleShowSizeChange: PaginationProps["onShowSizeChange"] = (
-    current,
-    pageSize
-  ) => {
-    setPerView(pageSize);
   };
 
   return (
@@ -90,9 +82,8 @@ export default function Home() {
           defaultCurrent={page}
           total={pageInfo.total}
           showSizeChanger
-          defaultPageSize={5}
-          pageSizeOptions={[5, 10, 20, 50, 100]}
-          onShowSizeChange={handleShowSizeChange}
+          defaultPageSize={20}
+          pageSizeOptions={[20]}
           className="home-pagination"
           onChange={handlePagination}
         />

@@ -17,12 +17,16 @@ export const graphqlSetting = (page: number, perView: number) => ({
                     hasNextPage
                     perPage
                 }
-                media {
+                media(startDate_greater: 2020, sort: START_DATE, genre:"Action") {
                     id
                     title {
-                        romaji
-                        english
                         native
+                    }
+                    siteUrl
+                    startDate {
+                      year
+                      month
+                      day
                     }
                 }
             }
