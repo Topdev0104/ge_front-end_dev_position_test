@@ -1,11 +1,74 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from '@/styles/Home.module.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import Head from "next/head";
+import PageLayout from "@app/layouts";
+import { Pagination, PaginationProps, Table } from "antd";
+import { columns } from "@app/contants/home";
+import { useEffect, useState } from "react";
+import { graphqlSetting } from "@app/graphql/home";
+import { PageInfoTypes, TableDataType } from "@app/types/home";
 
 export default function Home() {
+  const [tableData, setTableData] = useState<Array<TableDataType>>();
+  const [pageInfo, setPageInfo] = useState<PageInfoTypes>({
+    currentPage: 0,
+    hasNextPage: false,
+    lastPage: 0,
+    perPage: 0,
+    total: 0,
+  });
+  const [page, setPage] = useState<number>(1);
+  const [perView, setPerView] = useState<number>(5);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    getData(page, perView);
+  }, []);
+
+  useEffect(() => {
+    getData(page, perView);
+  }, [page, perView]);
+
+  const getData = async (page: number, perView: number) => {
+    try {
+      const setting = graphqlSetting(page, perView);
+      setLoading(true);
+      const res = await fetch(setting.url, setting.options);
+
+      const data = await res.json();
+      setTableData(
+        data.data.Page.media.map((item: any) => ({
+          id: item.id,
+          romaji: item.title.romaji,
+          english: item.title.english,
+          native: item.title.native,
+        }))
+      );
+      setPageInfo({
+        ...data.data.Page.pageInfo,
+        total:
+          data.data.Page.pageInfo.total > 5000
+            ? 5000
+            : data.data.Page.pageInfo.total,
+      });
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  const handlePagination: PaginationProps["onChange"] = (pageNumber) => {
+    if (pageInfo.total > perView * (pageNumber - 1)) {
+      setPage(pageNumber);
+      getData(pageNumber, perView);
+    }
+  };
+
+  const handleShowSizeChange: PaginationProps["onShowSizeChange"] = (
+    current,
+    pageSize
+  ) => {
+    setPerView(pageSize);
+  };
+
   return (
     <>
       <Head>
@@ -14,110 +77,26 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>src/pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
-
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+      <PageLayout>
+        <Table
+          columns={columns}
+          dataSource={tableData}
+          bordered
+          pagination={false}
+          loading={loading}
+          scroll={{ y: "calc(100vh - 300px)" }}
+        />
+        <Pagination
+          defaultCurrent={page}
+          total={pageInfo.total}
+          showSizeChanger
+          defaultPageSize={5}
+          pageSizeOptions={[5, 10, 20, 50, 100]}
+          onShowSizeChange={handleShowSizeChange}
+          className="home-pagination"
+          onChange={handlePagination}
+        />
+      </PageLayout>
     </>
-  )
+  );
 }
